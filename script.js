@@ -1,95 +1,112 @@
-let score = 0;
-let time = 0;
-let timerInterval;
-let difficulty = 'easy';
-const maxNum = { easy: 10, medium: 20, hard: 50 };
-const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+document.addEventListener('DOMContentLoaded', function () {
+    const startStopButton = document.getElementById('start-stop');
+    const questionElement = document.getElementById('question');
+    const answerInput = document.getElementById('answer');
+    const submitButton = document.getElementById('submit');
+    const timerElement = document.getElementById('timer');
+    const scoreElement = document.getElementById('score');
+    const endGameElement = document.getElementById('end-game');
+    const finalScoreElement = document.getElementById('final-score');
+    const restartButton = document.getElementById('restart');
+    const difficultySelect = document.getElementById('difficulty');
+    const leaderboardList = document.getElementById('leaderboard-list');
 
-const questionElement = document.getElementById('question');
-const answerElement = document.getElementById('answer');
-const timerElement = document.getElementById('timer');
-const scoreElement = document.getElementById('score');
-const submitButton = document.getElementById('submit');
-const difficultySelect = document.getElementById('difficulty');
-const leaderboardList = document.getElementById('leaderboard-list');
-
-let currentQuestion = generateQuestion();
-startTimer();
-
-function generateQuestion() {
-    const max = maxNum[difficulty];
-    const num1 = Math.floor(Math.random() * max) + 1;
-    const num2 = Math.floor(Math.random() * max) + 1;
-    const operator = Math.random() > 0.5 ? '+' : '-';
-    questionElement.textContent = `${num1} ${operator} ${num2}`;
-    return { num1, num2, operator };
-}
-
-function startTimer() {
-    timerInterval = setInterval(() => {
-        time++;
-        timerElement.textContent = `Time: ${time}s`;
-    }, 1000);
-}
-
-function stopTimer() {
-    clearInterval(timerInterval);
-}
-
-function checkAnswer() {
-    const { num1, num2, operator } = currentQuestion;
-    let correctAnswer;
+    let timer;
+    let score = 0;
+    let time = 0;
+    let isGameRunning = false;
+    let currentQuestion;
     
-    if (operator === '+') {
-        correctAnswer = num1 + num2;
-    } else {
-        correctAnswer = num1 - num2;
-    }
-    
-    if (parseInt(answerElement.value) === correctAnswer) {
-        score++;
+    function startGame() {
+        isGameRunning = true;
+        score = 0;
+        time = 0;
         scoreElement.textContent = `Score: ${score}`;
-        currentQuestion = generateQuestion();
-        answerElement.value = '';
-    } else {
-        answerElement.value = '';
+        timerElement.textContent = `Time: ${time}s`;
+        endGameElement.classList.add('hidden');
+        startStopButton.textContent = 'Stop';
+        answerInput.disabled = false;
+        answerInput.value = '';
+        answerInput.focus();
+        generateQuestion();
+        timer = setInterval(() => {
+            time++;
+            timerElement.textContent = `Time: ${time}s`;
+        }, 1000);
     }
-}
-
-function updateLeaderboard() {
-    leaderboard.push({ name: 'Player', score });
-    leaderboard.sort((a, b) => b.score - a.score);
-    if (leaderboard.length > 5) leaderboard.pop();
-    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-    renderLeaderboard();
-}
-
-function renderLeaderboard() {
-    leaderboardList.innerHTML = '';
-    leaderboard.forEach(entry => {
-        const li = document.createElement('li');
-        li.textContent = `${entry.name}: ${entry.score}`;
-        leaderboardList.appendChild(li);
+    
+    function stopGame() {
+        isGameRunning = false;
+        clearInterval(timer);
+        startStopButton.textContent = 'Start';
+        endGameElement.classList.remove('hidden');
+        finalScoreElement.textContent = score;
+        answerInput.disabled = true;
+        updateLeaderboard(score);
+    }
+    
+    function generateQuestion() {
+        const difficulty = difficultySelect.value;
+        let num1, num2;
+        switch (difficulty) {
+            case 'easy':
+                num1 = Math.floor(Math.random() * 10) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                break;
+            case 'medium':
+                num1 = Math.floor(Math.random() * 50) + 1;
+                num2 = Math.floor(Math.random() * 50) + 1;
+                break;
+            case 'hard':
+                num1 = Math.floor(Math.random() * 100) + 1;
+                num2 = Math.floor(Math.random() * 100) + 1;
+                break;
+        }
+        currentQuestion = {
+            num1: num1,
+            num2: num2,
+            answer: num1 + num2
+        };
+        questionElement.textContent = `${num1} + ${num2}`;
+    }
+    
+    function checkAnswer() {
+        const userAnswer = parseInt(answerInput.value);
+        if (userAnswer === currentQuestion.answer) {
+            score++;
+            scoreElement.textContent = `Score: ${score}`;
+            answerInput.value = '';
+            generateQuestion();
+        } else {
+            stopGame();
+        }
+    }
+    
+    function updateLeaderboard(score) {
+        const listItem = document.createElement('li');
+        listItem.textContent = `Score: ${score}`;
+        leaderboardList.appendChild(listItem);
+    }
+    
+    startStopButton.addEventListener('click', () => {
+        if (isGameRunning) {
+            stopGame();
+        } else {
+            startGame();
+        }
     });
-}
-
-submitButton.addEventListener('click', () => {
-    checkAnswer();
+    
+    submitButton.addEventListener('click', () => {
+        if (isGameRunning) {
+            checkAnswer();
+        }
+    });
+    
+    answerInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && isGameRunning) {
+            checkAnswer();
+        }
+    });
+    
+    restartButton.addEventListener('click', startGame);
 });
-
-answerElement.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        checkAnswer();
-    }
-});
-
-difficultySelect.addEventListener('change', (e) => {
-    difficulty = e.target.value;
-    currentQuestion = generateQuestion();
-});
-
-window.addEventListener('beforeunload', () => {
-    updateLeaderboard();
-});
-
-renderLeaderboard();
