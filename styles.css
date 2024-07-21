@@ -224,3 +224,18 @@ h1 {
 .rules-link:hover {
     background-color: #ff5252;
 }
+.contact-link {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 18px;
+    color: #ffffff;
+    background-color: #ff8a80;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.contact-link:hover {
+    background-color: #ff5252;
+}
